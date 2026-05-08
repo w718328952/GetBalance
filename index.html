@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="AI额度查询">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>AI额度查询</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  background: #f5f5f5;
+  color: #1a1a1a;
+  min-height: 100vh;
+  padding-bottom: 70px;
+}
+
+/* 顶部导航 */
+.header {
+  position: sticky;
+  top: 0;
+  background: #fff;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  z-index: 100;
+}
+.header h1 { font-size: 20px; font-weight: 600; }
+.btn-refresh {
+  background: #f0f7ff;
+  color: #007aff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.btn-refresh:active { opacity: 0.6; }
+.btn-refresh:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* 底部Tab栏 */
+.tab-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #fff;
+  display: flex;
+  border-top: 1px solid #eee;
+  z-index: 100;
+}
+.tab-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 0;
+  cursor: pointer;
+  color: #999;
+  font-size: 11px;
+  transition: color 0.2s;
+}
+.tab-item.active { color: #007aff; }
+.tab-icon { font-size: 20px; margin-bottom: 2px; }
+
+/* 页面容器 */
+.page { display: none; padding: 16px; }
+.page.active { display: block; }
+
+/* 余额卡片 */
+.balance-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.platform-info h3 { font-size: 16px; font-weight: 600; }
+.platform-info p { font-size: 12px; color: #666; margin-top: 2px; }
+.badge {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 10px;
+  color: #fff;
+  white-space: nowrap;
+}
+.badge-success { background: #34c759; }
+.badge-warning { background: #ff9500; }
+.badge-error { background: #ff3b30; }
+.badge-idle { background: #ccc; }
+.badge-loading { background: #007aff; }
+
+.card-body { margin-top: 12px; }
+.balance-amount {
+  font-size: 28px;
+  font-weight: 600;
+  color: #007aff;
+}
+.balance-currency {
+  font-size: 14px;
+  color: #666;
+  margin-right: 4px;
+}
+.balance-detail {
+  display: flex;
+  gap: 24px;
+  margin-top: 8px;
+}
+.balance-detail-item label { font-size: 11px; color: #999; display: block; }
+.balance-detail-item span { font-size: 14px; color: #1a1a1a; }
+.card-message {
+  font-size: 13px;
+  color: #666;
+  margin-top: 12px;
+  line-height: 1.5;
+}
+.card-message.error { color: #ff3b30; }
+.card-link {
+  color: #007aff;
+  font-size: 13px;
+  text-decoration: none;
+  display: inline-block;
+  margin-top: 6px;
+}
+.card-time {
+  font-size: 11px;
+  color: #999;
+  text-align: right;
+  margin-top: 8px;
+}
+.loading-spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #007aff;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* 设置页 */
+.settings-section {
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+.settings-desc {
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 12px;
+}
+.platform-row {
+  display: flex;
+  align-items: center;
+  padding: 14px 16px;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.platform-row:last-child { border-bottom: none; }
+.platform-row:active { background: #f8f8f8; }
+.platform-row-info { flex: 1; }
+.platform-row-info h4 { font-size: 15px; font-weight: 500; }
+.platform-row-info p { font-size: 12px; color: #999; margin-top: 3px; }
+.platform-row-info p.configured { color: #34c759; }
+.platform-row-arrow { color: #ccc; font-size: 16px; }
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #34c759;
+  margin-right: 12px;
+}
+
+.info-box {
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px;
+}
+.info-box h4 { font-size: 14px; font-weight: 500; margin-bottom: 8px; }
+.info-box p { font-size: 12px; color: #666; line-height: 1.8; }
+
+/* 弹窗 */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+}
+.modal-overlay.show { display: flex; }
+.modal {
+  background: #fff;
+  border-radius: 16px;
+  padding: 24px;
+  width: 90%;
+  max-width: 360px;
+  animation: modalIn 0.2s ease;
+}
+@keyframes modalIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.modal h3 { font-size: 17px; font-weight: 600; text-align: center; margin-bottom: 8px; }
+.modal .modal-desc { font-size: 12px; color: #666; text-align: center; margin-bottom: 16px; }
+.input-group {
+  position: relative;
+  margin-bottom: 8px;
+}
+.input-group input {
+  width: 100%;
+  height: 44px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 0 70px 0 12px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.input-group input:focus { border-color: #007aff; }
+.btn-toggle {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #f0f0f0;
+  border: none;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #666;
+  cursor: pointer;
+}
+.input-hint { font-size: 11px; color: #999; margin-bottom: 16px; }
+.modal-buttons {
+  display: flex;
+  gap: 10px;
+}
+.modal-buttons button {
+  flex: 1;
+  height: 40px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.modal-buttons button:active { opacity: 0.7; }
+.btn-cancel { background: #f5f5f5; color: #666; }
+.btn-save { background: #007aff; color: #fff; }
+.btn-delete { background: #fff0f0; color: #ff3b30; }
+
+/* 空状态 */
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: #999;
+}
+.empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+.empty-state p { font-size: 14px; }
+</style>
+</head>
+<body>
+
+<!-- 顶部 -->
+<div class="header">
+  <h1 id="headerTitle">API 额度查询</h1>
+  <button class="btn-refresh" id="btnRefresh" onclick="refreshAll()">刷新</button>
+</div>
+
+<!-- 余额页 -->
+<div class="page active" id="pagBalance">
+  <div id="balanceList"></div>
+</div>
+
+<!-- 设置页 -->
+<div class="page" id="pageSettings">
+  <p class="settings-desc">点击平台名称添加或修改 API Key</p>
+  <div class="settings-section" id="platformList"></div>
+  <div class="info-box">
+    <h4>说明</h4>
+    <p>1. DeepSeek 支持直接查询余额<br>
+       2. 通义千问、MiniMax、智谱GLM 暂不提供余额查询API，仅验证Key有效性<br>
+       3. API Key 存储在浏览器本地，不会上传到任何服务器<br>
+       4. 建议将本页面添加到手机主屏幕，方便随时查看</p>
+  </div>
+</div>
+
+<!-- 底部Tab -->
+<div class="tab-bar">
+  <div class="tab-item active" onclick="switchTab(0)">
+    <span class="tab-icon">📊</span>
+    <span>额度</span>
+  </div>
+  <div class="tab-item" onclick="switchTab(1)">
+    <span class="tab-icon">⚙️</span>
+    <span>设置</span>
+  </div>
+</div>
+
+<!-- API Key 弹窗 -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h3 id="modalTitle">配置 API Key</h3>
+    <p class="modal-desc" id="modalDesc"></p>
+    <div class="input-group">
+      <input type="password" id="inputKey" placeholder="请输入 API Key">
+      <button class="btn-toggle" id="btnToggle" onclick="toggleKeyVisibility()">显示</button>
+    </div>
+    <p class="input-hint">API Key 安全存储在浏览器本地</p>
+    <div class="modal-buttons" id="modalButtons">
+      <button class="btn-cancel" onclick="closeModal()">取消</button>
+      <button class="btn-save" onclick="saveKey()">保存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// 平台配置
+const PLATFORMS = [
+  {
+    type: 'deepseek',
+    name: 'DeepSeek',
+    description: 'DeepSeek AI 开放平台',
+    supportsBalance: true,
+    consoleUrl: 'https://platform.deepseek.com/',
+    balanceUrl: 'https://api.deepseek.com/user/balance',
+    placeholder: '请输入 DeepSeek API Key (sk-...)'
+  },
+  {
+    type: 'qwen',
+    name: '通义千问',
+    description: '阿里云百炼 / DashScope',
+    supportsBalance: false,
+    consoleUrl: 'https://bailian.console.aliyun.com/',
+    validateUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1/models',
+    placeholder: '请输入 DashScope API Key (sk-...)'
+  },
+  {
+    type: 'minimax',
+    name: 'MiniMax',
+    description: 'MiniMax 开放平台',
+    supportsBalance: false,
+    consoleUrl: 'https://platform.minimaxi.com/',
+    validateUrl: 'https://api.minimax.chat/v1/models',
+    placeholder: '请输入 MiniMax API Key'
+  },
+  {
+    type: 'zhipu',
+    name: '智谱GLM',
+    description: '智谱AI开放平台 (GLM系列)',
+    supportsBalance: false,
+    consoleUrl: 'https://open.bigmodel.cn/',
+    validateUrl: 'https://open.bigmodel.cn/api/paas/v4/models',
+    placeholder: '请输入智谱 API Key'
+  }
+];
+
+// 状态
+let balanceData = {};
+let currentPlatform = null;
+let isRefreshing = false;
+
+// 本地存储
+function getApiKeys() {
+  try {
+    return JSON.parse(localStorage.getItem('ai_balance_keys') || '{}');
+  } catch { return {}; }
+}
+
+function saveApiKey(platform, key) {
+  const keys = getApiKeys();
+  keys[platform] = { key, addedAt: Date.now() };
+  localStorage.setItem('ai_balance_keys', JSON.stringify(keys));
+}
+
+function deleteApiKey(platform) {
+  const keys = getApiKeys();
+  delete keys[platform];
+  localStorage.setItem('ai_balance_keys', JSON.stringify(keys));
+}
+
+// Tab 切换
+function switchTab(index) {
+  document.querySelectorAll('.tab-item').forEach((el, i) => {
+    el.classList.toggle('active', i === index);
+  });
+  document.getElementById('pagBalance').classList.toggle('active', index === 0);
+  document.getElementById('pageSettings').classList.toggle('active', index === 1);
+  document.getElementById('headerTitle').textContent = index === 0 ? 'API 额度查询' : '设置';
+  document.getElementById('btnRefresh').style.display = index === 0 ? 'block' : 'none';
+
+  if (index === 1) renderSettings();
+}
+
+// 渲染余额列表
+function renderBalanceList() {
+  const container = document.getElementById('balanceList');
+  const keys = getApiKeys();
+
+  if (PLATFORMS.every(p => !keys[p.type])) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="icon">🔑</div>
+        <p>尚未配置任何 API Key<br>请在"设置"中添加</p>
+      </div>`;
+    return;
+  }
+
+  container.innerHTML = PLATFORMS.map(platform => {
+    const hasKey = !!keys[platform.type];
+    const data = balanceData[platform.type];
+
+    let badgeHtml = '';
+    let bodyHtml = '';
+
+    if (!hasKey) {
+      badgeHtml = '<span class="badge badge-idle">未配置</span>';
+      bodyHtml = '<p class="card-message">尚未配置 API Key</p>';
+    } else if (!data || data.status === 'loading') {
+      badgeHtml = '<span class="badge badge-loading">查询中</span>';
+      bodyHtml = '<p class="card-message"><span class="loading-spinner"></span>正在查询...</p>';
+    } else if (data.status === 'success') {
+      badgeHtml = '<span class="badge badge-success">正常</span>';
+      bodyHtml = `
+        <div class="balance-amount"><span class="balance-currency">${data.currency}</span>${data.totalBalance}</div>
+        <div class="balance-detail">
+          <div class="balance-detail-item"><label>赠送额度</label><span>${data.grantedBalance}</span></div>
+          <div class="balance-detail-item"><label>充值额度</label><span>${data.toppedUpBalance}</span></div>
+        </div>`;
+    } else if (data.status === 'not_supported') {
+      badgeHtml = '<span class="badge badge-warning">已验证</span>';
+      bodyHtml = `
+        <p class="card-message">${data.message}</p>
+        <a class="card-link" href="${platform.consoleUrl}" target="_blank">前往控制台查看 &gt;</a>`;
+    } else if (data.status === 'error') {
+      badgeHtml = '<span class="badge badge-error">异常</span>';
+      bodyHtml = `<p class="card-message error">${data.message || '查询失败'}</p>`;
+    }
+
+    const timeHtml = data && data.lastUpdated
+      ? `<div class="card-time">更新于 ${formatTime(data.lastUpdated)}</div>`
+      : '';
+
+    return `
+      <div class="balance-card">
+        <div class="card-header">
+          <div class="platform-info"><h3>${platform.name}</h3><p>${platform.description}</p></div>
+          ${badgeHtml}
+        </div>
+        <div class="card-body">${bodyHtml}</div>
+        ${timeHtml}
+      </div>`;
+  }).join('');
+}
+
+// 渲染设置列表
+function renderSettings() {
+  const container = document.getElementById('platformList');
+  const keys = getApiKeys();
+
+  container.innerHTML = PLATFORMS.map(platform => {
+    const hasKey = !!keys[platform.type];
+    const maskedKey = hasKey ? maskKey(keys[platform.type].key) : '';
+
+    return `
+      <div class="platform-row" onclick="openModal('${platform.type}')">
+        ${hasKey ? '<div class="status-dot"></div>' : ''}
+        <div class="platform-row-info">
+          <h4>${platform.name}</h4>
+          <p class="${hasKey ? 'configured' : ''}">${hasKey ? maskedKey : '未配置'}</p>
+        </div>
+        <span class="platform-row-arrow">&gt;</span>
+      </div>`;
+  }).join('');
+}
+
+// 弹窗操作
+function openModal(platformType) {
+  currentPlatform = PLATFORMS.find(p => p.type === platformType);
+  const keys = getApiKeys();
+  const existing = keys[platformType];
+
+  document.getElementById('modalTitle').textContent = `配置 ${currentPlatform.name} API Key`;
+  document.getElementById('modalDesc').textContent = currentPlatform.description;
+  document.getElementById('inputKey').value = existing ? existing.key : '';
+  document.getElementById('inputKey').placeholder = currentPlatform.placeholder;
+  document.getElementById('inputKey').type = 'password';
+  document.getElementById('btnToggle').textContent = '显示';
+
+  // 按钮
+  const btnContainer = document.getElementById('modalButtons');
+  if (existing) {
+    btnContainer.innerHTML = `
+      <button class="btn-delete" onclick="deleteCurrentKey()">删除</button>
+      <button class="btn-cancel" onclick="closeModal()">取消</button>
+      <button class="btn-save" onclick="saveKey()">保存</button>`;
+  } else {
+    btnContainer.innerHTML = `
+      <button class="btn-cancel" onclick="closeModal()">取消</button>
+      <button class="btn-save" onclick="saveKey()">保存</button>`;
+  }
+
+  document.getElementById('modalOverlay').classList.add('show');
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('show');
+  currentPlatform = null;
+}
+
+function toggleKeyVisibility() {
+  const input = document.getElementById('inputKey');
+  const btn = document.getElementById('btnToggle');
+  if (input.type === 'password') {
+    input.type = 'text';
+    btn.textContent = '隐藏';
+  } else {
+    input.type = 'password';
+    btn.textContent = '显示';
+  }
+}
+
+function saveKey() {
+  const key = document.getElementById('inputKey').value.trim();
+  if (!key) return;
+  saveApiKey(currentPlatform.type, key);
+  closeModal();
+  renderSettings();
+  refreshAll();
+}
+
+function deleteCurrentKey() {
+  deleteApiKey(currentPlatform.type);
+  delete balanceData[currentPlatform.type];
+  closeModal();
+  renderSettings();
+  renderBalanceList();
+}
+
+// 查询余额
+async function refreshAll() {
+  if (isRefreshing) return;
+  isRefreshing = true;
+  document.getElementById('btnRefresh').disabled = true;
+  document.getElementById('btnRefresh').textContent = '刷新中...';
+
+  const keys = getApiKeys();
+
+  for (const platform of PLATFORMS) {
+    if (!keys[platform.type]) {
+      delete balanceData[platform.type];
+      continue;
+    }
+
+    balanceData[platform.type] = { status: 'loading' };
+    renderBalanceList();
+
+    const apiKey = keys[platform.type].key;
+
+    try {
+      if (platform.supportsBalance) {
+        const result = await queryDeepSeekBalance(apiKey);
+        balanceData[platform.type] = result;
+      } else {
+        const result = await validateKey(platform, apiKey);
+        balanceData[platform.type] = result;
+      }
+    } catch (err) {
+      balanceData[platform.type] = {
+        status: 'error',
+        message: '网络请求失败: ' + (err.message || '未知错误'),
+        lastUpdated: Date.now()
+      };
+    }
+
+    renderBalanceList();
+  }
+
+  isRefreshing = false;
+  document.getElementById('btnRefresh').disabled = false;
+  document.getElementById('btnRefresh').textContent = '刷新';
+}
+
+// DeepSeek 余额查询
+async function queryDeepSeekBalance(apiKey) {
+  const resp = await fetch('https://api.deepseek.com/user/balance', {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json'
+    }
+  });
+
+  if (!resp.ok) {
+    if (resp.status === 401 || resp.status === 403) {
+      return { status: 'error', message: 'API Key 无效或已过期', lastUpdated: Date.now() };
+    }
+    return { status: 'error', message: `HTTP ${resp.status}`, lastUpdated: Date.now() };
+  }
+
+  const data = await resp.json();
+  if (data.balance_infos && data.balance_infos.length > 0) {
+    const info = data.balance_infos[0];
+    return {
+      status: 'success',
+      totalBalance: info.total_balance,
+      grantedBalance: info.granted_balance,
+      toppedUpBalance: info.topped_up_balance,
+      currency: info.currency,
+      isAvailable: data.is_available,
+      lastUpdated: Date.now()
+    };
+  }
+
+  return { status: 'error', message: '响应数据异常', lastUpdated: Date.now() };
+}
+
+// 验证其他平台Key
+async function validateKey(platform, apiKey) {
+  try {
+    const resp = await fetch(platform.validateUrl, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (resp.status === 401 || resp.status === 403) {
+      return { status: 'error', message: 'API Key 无效或已过期', lastUpdated: Date.now() };
+    }
+
+    // 无论是否200，只要不是401/403就认为Key可能有效
+    return {
+      status: 'not_supported',
+      message: `API Key 已验证，余额请登录${platform.name}控制台查看`,
+      lastUpdated: Date.now()
+    };
+  } catch (err) {
+    // CORS 错误也视为Key已保存（浏览器跨域限制）
+    return {
+      status: 'not_supported',
+      message: `API Key 已保存，余额请登录${platform.name}控制台查看（浏览器跨域限制无法直接验证）`,
+      lastUpdated: Date.now()
+    };
+  }
+}
+
+// 工具函数
+function maskKey(key) {
+  if (key.length <= 8) return '****';
+  return key.substring(0, 4) + '****' + key.substring(key.length - 4);
+}
+
+function formatTime(ts) {
+  const d = new Date(ts);
+  return d.getHours().toString().padStart(2, '0') + ':' +
+         d.getMinutes().toString().padStart(2, '0') + ':' +
+         d.getSeconds().toString().padStart(2, '0');
+}
+
+// 点击遮罩关闭弹窗
+document.getElementById('modalOverlay').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+// 初始化
+renderBalanceList();
+renderSettings();
+
+// 如果已有Key，自动刷新
+const initKeys = getApiKeys();
+if (Object.keys(initKeys).length > 0) {
+  refreshAll();
+}
+
+// 注册 Service Worker (PWA 离线支持)
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
