@@ -373,11 +373,11 @@ const PLATFORMS = [
   {
     type: 'bailing',
     name: '百灵',
-    description: '火山引擎百灵模型',
-    supportsBalance: 'volcengine',
-    consoleUrl: 'https://console.volcengine.com/finance/unallocated-list/',
-    balanceUrl: 'https://open.volcengineapi.com',
-    placeholder: '请输入百灵 API Key (AK:SK 格式或 Bearer Key)'
+    description: '蚂蚁百灵开放平台',
+    supportsBalance: false,
+    consoleUrl: 'https://api.ling.tbox.cn/v1',
+    validateUrl: 'https://api.ling.tbox.cn/v1/models',
+    placeholder: '请输入百灵 API Key'
   },
   {
     type: 'doubao',
@@ -653,7 +653,7 @@ async function queryDeepSeekBalance(apiKey) {
   return { status: 'error', message: '响应数据异常', lastUpdated: Date.now() };
 }
 
-// 火山引擎（百灵/豆包）余额查询
+// 火山引擎（豆包）余额查询
 async function queryVolcengineBalance(apiKey) {
   // 火山引擎使用 HMAC 签名认证，浏览器端无法直接调用 QueryBalanceAcct API
   // 但如果用户提供的是方舟平台的 Bearer Key，可以尝试验证有效性
