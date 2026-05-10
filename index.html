@@ -296,7 +296,7 @@ body {
   <div class="info-box">
     <h4>说明</h4>
     <p>1. DeepSeek 支持直接查询余额<br>
-       2. 通义千问、MiniMax、智谱GLM 暂不提供余额查询API，仅验证Key有效性<br>
+       2. 通义千问、MiniMax、智谱GLM、百灵/豆包 暂不提供余额查询API，仅验证Key有效性<br>
        3. API Key 存储在浏览器本地，不会上传到任何服务器<br>
        4. 建议将本页面添加到手机主屏幕，方便随时查看</p>
   </div>
@@ -369,6 +369,15 @@ const PLATFORMS = [
     consoleUrl: 'https://open.bigmodel.cn/',
     validateUrl: 'https://open.bigmodel.cn/api/paas/v4/models',
     placeholder: '请输入智谱 API Key'
+  },
+  {
+    type: 'doubao',
+    name: '百灵/豆包',
+    description: '火山引擎方舟 (Doubao系列)',
+    supportsBalance: 'volcengine',
+    consoleUrl: 'https://console.volcengine.com/finance/unallocated-list/',
+    balanceUrl: 'https://open.volcengineapi.com',
+    placeholder: '请输入火山引擎 API Key (AK:SK 格式或 Bearer Key)'
   }
 ];
 
@@ -575,8 +584,11 @@ async function refreshAll() {
     const apiKey = keys[platform.type].key;
 
     try {
-      if (platform.supportsBalance) {
+      if (platform.supportsBalance === true) {
         const result = await queryDeepSeekBalance(apiKey);
+        balanceData[platform.type] = result;
+      } else if (platform.supportsBalance === 'volcengine') {
+        const result = await queryVolcengineBalance(apiKey);
         balanceData[platform.type] = result;
       } else {
         const result = await validateKey(platform, apiKey);
@@ -630,6 +642,37 @@ async function queryDeepSeekBalance(apiKey) {
   }
 
   return { status: 'error', message: '响应数据异常', lastUpdated: Date.now() };
+}
+
+// 火山引擎（百灵/豆包）余额查询
+async function queryVolcengineBalance(apiKey) {
+  // 火山引擎使用 HMAC 签名认证，浏览器端无法直接调用 QueryBalanceAcct API
+  // 但如果用户提供的是方舟平台的 Bearer Key，可以尝试验证有效性
+  try {
+    const resp = await fetch('https://ark.cn-beijing.volces.com/api/v3/models', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (resp.status === 401 || resp.status === 403) {
+      return { status: 'error', message: 'API Key 无效或已过期', lastUpdated: Date.now() };
+    }
+
+    return {
+      status: 'not_supported',
+      message: 'API Key 已验证有效，余额请登录火山引擎控制台查看（费用中心 > 余额）',
+      lastUpdated: Date.now()
+    };
+  } catch (err) {
+    return {
+      status: 'not_supported',
+      message: 'API Key 已保存，余额请登录火山引擎控制台查看（浏览器跨域限制无法直接验证）',
+      lastUpdated: Date.now()
+    };
+  }
 }
 
 // 验证其他平台Key
