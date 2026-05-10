@@ -296,7 +296,7 @@ body {
   <div class="info-box">
     <h4>说明</h4>
     <p>1. DeepSeek 支持直接查询余额<br>
-       2. 通义千问、MiniMax、智谱GLM、百灵/豆包 暂不提供余额查询API，仅验证Key有效性<br>
+       2. 通义千问、MiniMax、智谱GLM、百灵、豆包 暂不提供余额查询API，仅验证Key有效性<br>
        3. API Key 存储在浏览器本地，不会上传到任何服务器<br>
        4. 建议将本页面添加到手机主屏幕，方便随时查看</p>
   </div>
@@ -371,13 +371,22 @@ const PLATFORMS = [
     placeholder: '请输入智谱 API Key'
   },
   {
+    type: 'bailing',
+    name: '百灵',
+    description: '火山引擎百灵模型',
+    supportsBalance: 'volcengine',
+    consoleUrl: 'https://console.volcengine.com/finance/unallocated-list/',
+    balanceUrl: 'https://open.volcengineapi.com',
+    placeholder: '请输入百灵 API Key (AK:SK 格式或 Bearer Key)'
+  },
+  {
     type: 'doubao',
-    name: '百灵/豆包',
+    name: '豆包',
     description: '火山引擎方舟 (Doubao系列)',
     supportsBalance: 'volcengine',
     consoleUrl: 'https://console.volcengine.com/finance/unallocated-list/',
     balanceUrl: 'https://open.volcengineapi.com',
-    placeholder: '请输入火山引擎 API Key (AK:SK 格式或 Bearer Key)'
+    placeholder: '请输入豆包 API Key (AK:SK 格式或 Bearer Key)'
   }
 ];
 
