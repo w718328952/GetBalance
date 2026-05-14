@@ -295,7 +295,7 @@ body {
   <div class="settings-section" id="platformList"></div>
   <div class="info-box">
     <h4>说明</h4>
-    <p>1. DeepSeek 支持直接查询余额<br>
+    <p>1. DeepSeek、硅基流动 bge-m3 支持直接查询余额<br>
        2. 通义千问、MiniMax、智谱GLM、百灵、豆包 暂不提供余额查询API，仅验证Key有效性<br>
        3. API Key 存储在浏览器本地，不会上传到任何服务器<br>
        4. 建议将本页面添加到手机主屏幕，方便随时查看</p>
@@ -387,6 +387,15 @@ const PLATFORMS = [
     consoleUrl: 'https://console.volcengine.com/finance/unallocated-list/',
     balanceUrl: 'https://open.volcengineapi.com',
     placeholder: '请输入豆包 API Key (AK:SK 格式或 Bearer Key)'
+  },
+  {
+    type: 'siliconflow_bge_m3',
+    name: 'bge-m3',
+    description: '硅基流动 SiliconFlow 嵌入模型',
+    supportsBalance: 'siliconflow',
+    consoleUrl: 'https://cloud.siliconflow.cn/me/account/ak',
+    balanceUrl: 'https://api.siliconflow.cn/v1/user/info',
+    placeholder: '请输入硅基流动 API Key (sk-...)'
   }
 ];
 
@@ -599,6 +608,9 @@ async function refreshAll() {
       } else if (platform.supportsBalance === 'volcengine') {
         const result = await queryVolcengineBalance(apiKey);
         balanceData[platform.type] = result;
+      } else if (platform.supportsBalance === 'siliconflow') {
+        const result = await querySiliconFlowBalance(apiKey);
+        balanceData[platform.type] = result;
       } else {
         const result = await validateKey(platform, apiKey);
         balanceData[platform.type] = result;
@@ -651,6 +663,39 @@ async function queryDeepSeekBalance(apiKey) {
   }
 
   return { status: 'error', message: '响应数据异常', lastUpdated: Date.now() };
+}
+
+// 硅基流动余额查询
+async function querySiliconFlowBalance(apiKey) {
+  const resp = await fetch('https://api.siliconflow.cn/v1/user/info', {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json'
+    }
+  });
+
+  if (!resp.ok) {
+    if (resp.status === 401 || resp.status === 403) {
+      return { status: 'error', message: 'API Key 无效或已过期', lastUpdated: Date.now() };
+    }
+    return { status: 'error', message: `HTTP ${resp.status}`, lastUpdated: Date.now() };
+  }
+
+  const data = await resp.json();
+  if (data.status && data.data) {
+    return {
+      status: 'success',
+      totalBalance: data.data.totalBalance || data.data.balance || '0',
+      grantedBalance: data.data.balance || '0',
+      toppedUpBalance: data.data.chargeBalance || '0',
+      currency: '¥',
+      isAvailable: data.data.status === 'normal',
+      lastUpdated: Date.now()
+    };
+  }
+
+  return { status: 'error', message: data.message || '响应数据异常', lastUpdated: Date.now() };
 }
 
 // 火山引擎（豆包）余额查询
