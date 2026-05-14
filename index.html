@@ -344,6 +344,15 @@ const PLATFORMS = [
     placeholder: '请输入 DeepSeek API Key (sk-...)'
   },
   {
+    type: 'siliconflow_bge_m3',
+    name: 'bge-m3',
+    description: '硅基流动 SiliconFlow 嵌入模型',
+    supportsBalance: 'siliconflow',
+    consoleUrl: 'https://cloud.siliconflow.cn/me/account/ak',
+    balanceUrl: 'https://api.siliconflow.cn/v1/user/info',
+    placeholder: '请输入硅基流动 API Key (sk-...)'
+  },
+  {
     type: 'qwen',
     name: '通义千问',
     description: '阿里云百炼 / DashScope',
@@ -387,15 +396,6 @@ const PLATFORMS = [
     consoleUrl: 'https://console.volcengine.com/finance/unallocated-list/',
     balanceUrl: 'https://open.volcengineapi.com',
     placeholder: '请输入豆包 API Key (AK:SK 格式或 Bearer Key)'
-  },
-  {
-    type: 'siliconflow_bge_m3',
-    name: 'bge-m3',
-    description: '硅基流动 SiliconFlow 嵌入模型',
-    supportsBalance: 'siliconflow',
-    consoleUrl: 'https://cloud.siliconflow.cn/me/account/ak',
-    balanceUrl: 'https://api.siliconflow.cn/v1/user/info',
-    placeholder: '请输入硅基流动 API Key (sk-...)'
   }
 ];
 
